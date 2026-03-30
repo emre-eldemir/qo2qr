@@ -1,0 +1,26 @@
+# Dependencies
+src/vendor/
+
+# Environment
+.env
+
+# QR generated images
+src/public/qr/*.png
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker volumes
+mysql_data/
+mosquitto/data/
+mosquitto/log/

@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qr_order_app
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+    environment:
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE:-qr_order}
+      - DB_USERNAME=${DB_USERNAME:-qr_user}
+      - DB_PASSWORD=${DB_PASSWORD:-qr_secret}
+      - MQTT_HOST=${MQTT_HOST:-mqtt}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+    networks:
+      - qr_network
+
+  web:
+    image: nginx:alpine
+    container_name: qr_order_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - qr_network
+
+  db:
+    image: mariadb:10.11
+    container_name: qr_order_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-qr_order}
+      MYSQL_USER: ${DB_USERNAME:-qr_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-qr_secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qr_network
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: qr_order_mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - qr_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: qr_order_pma
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+    depends_on:
+      - db
+    networks:
+      - qr_network
+
+volumes:
+  mysql_data:
+  mosquitto_data:
+  mosquitto_log:
+
+networks:
+  qr_network:
+    driver: bridge
