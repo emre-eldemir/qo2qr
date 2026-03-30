@@ -28,7 +28,11 @@ class Database
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
 
-        $this->pdo->exec("SET NAMES '{$config['charset']}' COLLATE '{$config['collation']}'");
+        $allowedCharsets    = ['utf8', 'utf8mb4', 'latin1', 'ascii'];
+        $allowedCollations  = ['utf8mb4_unicode_ci', 'utf8mb4_general_ci', 'utf8_general_ci', 'latin1_swedish_ci'];
+        $charset   = in_array($config['charset'], $allowedCharsets, true) ? $config['charset'] : 'utf8mb4';
+        $collation = in_array($config['collation'], $allowedCollations, true) ? $config['collation'] : 'utf8mb4_unicode_ci';
+        $this->pdo->exec("SET NAMES '{$charset}' COLLATE '{$collation}'");
     }
 
     private function __clone() {}

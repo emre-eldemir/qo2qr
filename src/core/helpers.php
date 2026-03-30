@@ -16,6 +16,8 @@ function h(?string $string): string
  */
 function redirect(string $url): never
 {
+    // Strip control characters to prevent header injection (CRLF)
+    $url = str_replace(["\r", "\n", "\0"], '', $url);
     header('Location: ' . $url);
     exit;
 }
