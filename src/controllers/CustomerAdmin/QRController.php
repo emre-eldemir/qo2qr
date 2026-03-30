@@ -149,7 +149,15 @@ class QRController
 
         $filePath = PUBLIC_PATH . $qr['qr_image_path'];
 
-        if (!file_exists($filePath)) {
+        // Path traversal protection: ensure the resolved path stays inside the QR directory
+        $realPath   = realpath($filePath);
+        $expectedDir = realpath(PUBLIC_PATH . '/qr');
+        if ($realPath === false || $expectedDir === false || !str_starts_with($realPath, $expectedDir . DIRECTORY_SEPARATOR)) {
+            flash_set('error', 'Invalid file path.');
+            redirect(url('/customer/qr'));
+        }
+
+        if (!file_exists($realPath)) {
             flash_set('error', 'QR code file not found. Please regenerate.');
             redirect(url('/customer/qr'));
         }
@@ -157,9 +165,10 @@ class QRController
         $downloadName = 'qr_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $qr['table_name']) . '.png';
 
         header('Content-Type: image/png');
-        header('Content-Disposition: attachment; filename="' . $downloadName . '"');
-        header('Content-Length: ' . filesize($filePath));
-        readfile($filePath);
+        header('Content-Disposition: attachment; filename="' . $downloadName . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
+        header('Content-Length: ' . filesize($realPath));
+        header('X-Content-Type-Options: nosniff');
+        readfile($realPath);
         exit;
     }
 }

@@ -109,7 +109,12 @@ class Auth
 
         if (self::role() !== $role) {
             http_response_code(403);
-            echo '403 Forbidden';
+            $errorFile = (defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__)) . '/views/errors/403.php';
+            if (file_exists($errorFile)) {
+                require $errorFile;
+            } else {
+                echo '403 Forbidden';
+            }
             exit;
         }
     }

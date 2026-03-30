@@ -77,6 +77,10 @@ class FormController
         }
 
         $formData = json_decode($form['form_json'], true);
+        if ($formData === null) {
+            flash_set('error', 'Form data is corrupted. Please recreate the form.');
+            redirect(url('/customer/forms'));
+        }
 
         view('customer_admin.form_builder', [
             'form'     => $form,
@@ -172,6 +176,10 @@ class FormController
         }
 
         $formData = json_decode($form['form_json'], true);
+        if ($formData === null) {
+            flash_set('error', 'Form data is corrupted. Please recreate the form.');
+            redirect(url('/customer/forms'));
+        }
 
         view('customer_admin.form_preview', [
             'form'     => $form,

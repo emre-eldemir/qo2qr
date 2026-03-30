@@ -51,8 +51,6 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "3306:3306"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -65,28 +63,10 @@ services:
     image: eclipse-mosquitto:2
     container_name: qr_order_mqtt
     restart: unless-stopped
-    ports:
-      - "1883:1883"
-      - "9001:9001"
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
-    networks:
-      - qr_network
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: qr_order_pma
-    restart: unless-stopped
-    ports:
-      - "8081:80"
-    environment:
-      PMA_HOST: db
-      PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
-    depends_on:
-      - db
     networks:
       - qr_network
 

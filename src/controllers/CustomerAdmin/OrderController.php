@@ -11,22 +11,19 @@ class OrderController
 
         $statusFilter = $_GET['status'] ?? '';
         $params       = [$rId];
-        $where        = 'o.restaurant_id = ?';
+        $query        = 'SELECT o.id, o.customer_name, o.total, o.status, o.created_at, rt.name AS table_name
+             FROM orders o
+             JOIN restaurant_tables rt ON rt.id = o.table_id
+             WHERE o.restaurant_id = ?';
 
-        if ($statusFilter !== '' && in_array($statusFilter, ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])) {
-            $where   .= ' AND o.status = ?';
+        if ($statusFilter !== '' && in_array($statusFilter, ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'], true)) {
+            $query   .= ' AND o.status = ?';
             $params[] = $statusFilter;
         }
 
-        $orders = $db->query(
-            "SELECT o.id, o.customer_name, o.total, o.status, o.created_at, rt.name AS table_name
-             FROM orders o
-             JOIN restaurant_tables rt ON rt.id = o.table_id
-             WHERE {$where}
-             ORDER BY o.created_at DESC
-             LIMIT 200",
-            $params
-        )->fetchAll();
+        $query .= ' ORDER BY o.created_at DESC LIMIT 200';
+
+        $orders = $db->query($query, $params)->fetchAll();
 
         view('customer_admin.orders', [
             'orders'       => $orders,

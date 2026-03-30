@@ -47,19 +47,38 @@ function url(string $path = ''): string
 function view(string $name, array $data = []): never
 {
     $basePath = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__);
+
+    // Reject names that contain path traversal sequences
+    if (str_contains($name, '..') || preg_match('#[/\\\\]#', $name)) {
+        http_response_code(400);
+        echo 'Bad Request';
+        exit;
+    }
+
     $file = $basePath . '/views/' . str_replace('.', '/', $name) . '.php';
 
-    if (!file_exists($file)) {
-        throw new RuntimeException("View [{$name}] not found at {$file}");
+    // Path traversal protection: resolved path must stay inside the views directory
+    $realBase = realpath($basePath . '/views');
+    $realFile = realpath($file);
+    if ($realBase === false || $realFile === false || !str_starts_with($realFile, $realBase . DIRECTORY_SEPARATOR)) {
+        http_response_code(404);
+        echo 'Page not found';
+        exit;
     }
 
     extract($data, EXTR_SKIP);
 
     ob_start();
-    require $file;
+    require $realFile;
     $content = ob_get_clean();
 
     $layout = $layout ?? 'public';
+
+    // Validate layout name (alphanumeric and underscores only)
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $layout)) {
+        $layout = 'public';
+    }
+
     $layoutFile = $basePath . '/views/layouts/' . $layout . '.php';
 
     if (file_exists($layoutFile)) {
@@ -78,7 +97,8 @@ function json_response(mixed $data, int $code = 200): never
 {
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
     exit;
 }
 
