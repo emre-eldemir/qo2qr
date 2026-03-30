@@ -8,6 +8,16 @@ error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
+// Hide PHP version from response headers
+header_remove('X-Powered-By');
+
+// Security headers (defence-in-depth alongside Nginx)
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+
 // Base path
 define('BASE_PATH', dirname(__DIR__));
 define('PUBLIC_PATH', __DIR__);
