@@ -38,20 +38,37 @@ function url(string $path = ''): string
 }
 
 /**
- * Render a view file with extracted data.
+ * Render a view file inside a layout with extracted data.
  *
- * Uses dot notation: 'public.home' => /var/www/html/views/public/home.php
+ * Uses dot notation: 'public.home' => views/public/home.php
+ * View files set $layout and $title variables; their HTML output is
+ * captured as $content and injected into the layout.
  */
-function view(string $name, array $data = []): void
+function view(string $name, array $data = []): never
 {
-    $file = '/var/www/html/views/' . str_replace('.', '/', $name) . '.php';
+    $basePath = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__);
+    $file = $basePath . '/views/' . str_replace('.', '/', $name) . '.php';
 
     if (!file_exists($file)) {
         throw new RuntimeException("View [{$name}] not found at {$file}");
     }
 
     extract($data, EXTR_SKIP);
+
+    ob_start();
     require $file;
+    $content = ob_get_clean();
+
+    $layout = $layout ?? 'public';
+    $layoutFile = $basePath . '/views/layouts/' . $layout . '.php';
+
+    if (file_exists($layoutFile)) {
+        require $layoutFile;
+    } else {
+        echo $content;
+    }
+
+    exit;
 }
 
 /**
@@ -67,14 +84,15 @@ function json_response(mixed $data, int $code = 200): never
 
 /**
  * Retrieve old form input from flash data (useful after validation failures).
+ * Caches the flash data so multiple calls within the same request work correctly.
  */
 function old(string $key, string $default = ''): string
 {
-    $old = Session::getFlash('_old_input');
-    if (is_array($old) && isset($old[$key])) {
-        return (string) $old[$key];
+    static $cache = null;
+    if ($cache === null) {
+        $cache = Session::getFlash('_old_input') ?? [];
     }
-    return $default;
+    return isset($cache[$key]) ? (string) $cache[$key] : $default;
 }
 
 /**

@@ -102,10 +102,14 @@ class Router
 
         // String handler: 'ControllerClass@method'
         if (is_string($handler) && str_contains($handler, '@')) {
-            [$class, $method] = explode('@', $handler, 2);
+            [$controllerPath, $method] = explode('@', $handler, 2);
 
             // Attempt to auto-include the controller file
-            $this->requireController($class);
+            $this->requireController($controllerPath);
+
+            // Extract the base class name for subdirectory controllers
+            // e.g. 'Public/HomeController' → 'HomeController'
+            $class = basename(str_replace('\\', '/', $controllerPath));
 
             if (!class_exists($class)) {
                 throw new \RuntimeException("Controller class {$class} not found.");
